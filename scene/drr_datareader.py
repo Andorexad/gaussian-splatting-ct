@@ -392,34 +392,54 @@ def readNerfSyntheticInfo(path, white_background, eval, extension=".png"):
                            ply_path=ply_path)
     return scene_info
 
-def extract_pose_and_intrinsic_from_drr_cam(cam):
+def extract_pose_and_intrinsic_from_drr_cam(path):
+    with open(path, 'r') as file:
+        lines = file.readlines()
+        # Extracting the lines under 'Intrinsic'
+        intrinsic_lines = lines[13:16]
+        fx, _, _, _ = map(float, intrinsic_lines[0].split())
+        _, fy, _, _ = map(float, intrinsic_lines[1].split())
+        cx, cy, height, width = map(float, intrinsic_lines[2].split())
     
-def readDrrSceneInfo(path, images, eval, num_pts=1024, train_num=-1):
+   
+        extrinsic_lines = lines[8:12]
+        pose = np.array([list(map(float, line.split())) for line in extrinsic_lines], dtype=np.float32)
+    return (fx, fy, cx, cy, int(height), int(width)), pose
+
+def readDrrSceneInfo(path, eval, num_pts=1024, train_num=-1):
     print("start drr scene info")
     if os.path.isdir(path):
         sample_dir = path
-        intrinsics = load_intrinsics(
-            os.path.join(sample_dir, 'intrinsics.txt'))
+        # intrinsics = load_intrinsics(
+        #     os.path.join(sample_dir, 'intrinsics.txt'))
         
         image_dir = os.path.join(sample_dir, 'input')
+        cam_dir = os.path.join(sample_dir, 'camera')
+
         image_names = os.listdir(image_dir)
         image_names.sort()
         image_paths = []
+
+        cam_names = os.listdir(cam_dir)
+        cam_names.sort()
+        intrinsics = []
         poses = []
 
         for image_name in image_names:
             image_paths.append(os.path.join(image_dir, image_name))
-            pose_path = os.path.join(
-                sample_dir, 'pose/' + os.path.splitext(image_name)[0] + '.txt')
-            poses.append(load_pose(pose_path))
+
+        for cam_name in cam_names:
+            cam_path = os.path.join(cam_dir, cam_name)   
+            intri, pose = extract_pose_and_intrinsic_from_drr_cam(cam_path)
+            intrinsics.append(intri)
+            poses.append(pose)
 
     train_cam_infos = []
     test_cam_infos = []
-    fx, fy, cx, cy, height, width = intrinsics
-    FovY = focal2fov(fx, height)
-    FovX = focal2fov(fy, width)
+    
+
     counter = 0
-    for image_name, image_path, pose in zip(image_names, image_paths, poses):
+    for image_name, image_path, pose, intri in zip(image_names, image_paths, poses, intrinsics):
         image = Image.open(image_path)
         c2w = pose
         w2c = np.linalg.inv(c2w)
@@ -428,46 +448,25 @@ def readDrrSceneInfo(path, images, eval, num_pts=1024, train_num=-1):
         T = w2c[:3, 3]
         counter += 1
 
-        if counter % 8 != 0:
-            train_cam_infos.append(CameraInfo(uid=-1, R=R, T=T, FovY=FovY, FovX=FovX, image=image,
+        fx, fy, cx, cy, height, width = intri
+        FovY = focal2fov(fx, height)
+        FovX = focal2fov(fy, width)
+
+        if eval:
+            if counter % 8 != 0:
+                train_cam_infos.append(CameraInfo(uid=-1, R=R, T=T, FovY=FovY, FovX=FovX, image=image,
+                                                image_path=image_path, image_name=image_name, width=width, height=height))
+            else:
+                test_cam_infos.append(CameraInfo(uid=-1, R=R, T=T, FovY=FovY, FovX=FovX, image=image,
                                               image_path=image_path, image_name=image_name, width=width, height=height))
         else:
             train_cam_infos.append(CameraInfo(uid=-1, R=R, T=T, FovY=FovY, FovX=FovX, image=image,
-                                              image_path=image_path, image_name=image_name, width=width, height=height))
+                                        image_path=image_path, image_name=image_name, width=width, height=height))
     if train_num != -1:
         step_size = len(train_cam_infos) // train_num
         train_cam_infos = [train_cam_infos[i] for i in range(
             0, len(train_cam_infos), step_size)[:train_num]]
         print(f"train using {len(train_cam_infos)} images")
-
-    # path = os.path.join("data/cars_train_test/", os.path.basename(os.path.normpath(path)))
-    path = "/mnt/d/wsl/conda-projects/gaussian-splatting/shapenet_sample/chair1/"
-    if os.path.isdir(path):
-        print("Detected test datast!")
-        sample_dir = path
-        intrinsics = load_intrinsics(
-            os.path.join(sample_dir, 'intrinsics.txt'))
-        image_dir = os.path.join(sample_dir, 'rgb')
-        image_names = os.listdir(image_dir)
-        image_names.sort()
-        image_paths = []
-        poses = []
-        for image_name in image_names:
-            image_paths.append(os.path.join(image_dir, image_name))
-            pose_path = os.path.join(
-                sample_dir, 'pose/' + os.path.splitext(image_name)[0] + '.txt')
-            poses.append(load_pose(pose_path))
-
-    for image_name, image_path, pose in zip(image_names, image_paths, poses):
-        image = Image.open(image_path)
-        c2w = pose
-        w2c = np.linalg.inv(c2w)
-        # R is stored transposed due to 'glm' in CUDA code
-        R = np.transpose(w2c[:3, :3])
-        T = w2c[:3, 3]
-
-        test_cam_infos.append(CameraInfo(uid=-1, R=R, T=T, FovY=FovY, FovX=FovX, image=image,
-                                         image_path=image_path, image_name=image_name, width=width, height=height))
 
     nerf_normalization = getNerfppNorm(train_cam_infos)
 
@@ -486,11 +485,7 @@ def readDrrSceneInfo(path, images, eval, num_pts=1024, train_num=-1):
             shs), normals=np.zeros((num_pts, 3)))
 
         storePly(ply_path, xyz, SH2RGB(shs) * 255)
-    # try:
-    #     pcd = fetchPly(ply_path)
-    # except:
-    #     pcd = None
-
+  
     scene_info = SceneInfo(point_cloud=pcd,
                            train_cameras=train_cam_infos,
                            test_cameras=test_cam_infos,
