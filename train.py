@@ -51,9 +51,10 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoi
     ema_loss_for_log = 0.0
     progress_bar = tqdm(range(first_iter, opt.iterations), desc="Training progress")
     first_iter += 1
+    loss_values = []
+    emaloss_values = []
     for iteration in range(first_iter, opt.iterations + 1):    
-        loss_values = []
-        emaloss_values = []
+        
         if network_gui.conn == None:
             network_gui.try_connect()
         while network_gui.conn != None:
