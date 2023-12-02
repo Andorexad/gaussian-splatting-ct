@@ -397,8 +397,8 @@ def extract_pose_and_intrinsic_from_drr_cam(path):
         lines = file.readlines()
         # Extracting the lines under 'Intrinsic'
         intrinsic_lines = lines[13:16]
-        fx, _, cx = map(float, intrinsic_lines[0].split())
-        _, fy, cy = map(float, intrinsic_lines[1].split())
+        fx, _, cx, _ = map(float, intrinsic_lines[0].split())
+        _, fy, cy, _ = map(float, intrinsic_lines[1].split())
         # cx, cy, height, width = map(float, intrinsic_lines[2].split())
         height, width = 128, 128
     
