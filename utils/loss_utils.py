@@ -40,10 +40,10 @@ def ssim(img1, img2, window_size=11, size_average=True):
 
     return _ssim(img1, img2, window, window_size, channel, size_average)
 
-def _ssim(img1, img2, window, window_size, channel, size_average=True):
-    print(img1.shape,img2.shape)
+def _ssim(img1, img2_input, window, window_size, channel, size_average=True):
+    img2=img2_input.repeat(3, 1, 1)
     mu1 = F.conv2d(img1, window, padding=window_size // 2, groups=channel)
-    mu2 = F.conv2d(img2.repeat(1, 3, 1, 1), window, padding=window_size // 2, groups=channel)
+    mu2 = F.conv2d(img2, window, padding=window_size // 2, groups=channel)
 
     mu1_sq = mu1.pow(2)
     mu2_sq = mu2.pow(2)
