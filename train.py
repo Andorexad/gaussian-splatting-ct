@@ -154,7 +154,7 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoi
 
     # Show the plots
     plt.tight_layout()  # Adjusts the subplots to fit in the figure area
-    plt.show()
+    plt.savefig('loss.png')
 
 
 def prepare_output_and_logger(args):    
