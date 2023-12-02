@@ -22,6 +22,9 @@ from tqdm import tqdm
 from utils.image_utils import psnr
 from argparse import ArgumentParser, Namespace
 from arguments import ModelParams, PipelineParams, OptimizationParams
+import matplotlib.pyplot as plt
+
+
 try:
     from torch.utils.tensorboard import SummaryWriter
     TENSORBOARD_FOUND = True
@@ -48,7 +51,9 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoi
     ema_loss_for_log = 0.0
     progress_bar = tqdm(range(first_iter, opt.iterations), desc="Training progress")
     first_iter += 1
-    for iteration in range(first_iter, opt.iterations + 1):        
+    for iteration in range(first_iter, opt.iterations + 1):    
+        loss_values = []
+        emaloss_values = []
         if network_gui.conn == None:
             network_gui.try_connect()
         while network_gui.conn != None:
@@ -87,6 +92,7 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoi
         gt_image = viewpoint_cam.original_image.cuda()
         Ll1 = l1_loss(image, gt_image)
         loss = (1.0 - opt.lambda_dssim) * Ll1 + opt.lambda_dssim * (1.0 - ssim(image, gt_image))
+        loss_values.append(loss.item())
         loss.backward()
 
         iter_end.record()
@@ -94,6 +100,7 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoi
         with torch.no_grad():
             # Progress bar
             ema_loss_for_log = 0.4 * loss.item() + 0.6 * ema_loss_for_log
+            emaloss_values.append(ema_loss_for_log)
             if iteration % 10 == 0:
                 progress_bar.set_postfix({"Loss": f"{ema_loss_for_log:.{7}f}"})
                 progress_bar.update(10)
@@ -127,6 +134,28 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoi
             if (iteration in checkpoint_iterations):
                 print("\n[ITER {}] Saving Checkpoint".format(iteration))
                 torch.save((gaussians.capture(), iteration), scene.model_path + "/chkpnt" + str(iteration) + ".pth")
+    plt.figure(figsize=(12, 6))
+
+    # First subplot for raw training loss
+    plt.subplot(1, 2, 1)  # 1 row, 2 columns, first subplot
+    plt.plot(loss_values, label='Training Loss', color='blue')
+    plt.title("Training Loss Over Iterations")
+    plt.xlabel("Iterations")
+    plt.ylabel("Loss")
+    plt.legend()
+
+    # Second subplot for EMA training loss
+    plt.subplot(1, 2, 2)  # 1 row, 2 columns, second subplot
+    plt.plot(emaloss_values, label='EMA Training Loss', color='red')
+    plt.title("EMA Training Loss Over Iterations")
+    plt.xlabel("Iterations")
+    plt.ylabel("Loss")
+    plt.legend()
+
+    # Show the plots
+    plt.tight_layout()  # Adjusts the subplots to fit in the figure area
+    plt.show()
+
 
 def prepare_output_and_logger(args):    
     if not args.model_path:
