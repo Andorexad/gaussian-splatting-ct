@@ -43,7 +43,7 @@ def ssim(img1, img2, window_size=11, size_average=True):
 def _ssim(img1_input, img2_input, window, window_size, channel, size_average=True):
     img2=None
     img1=None
-    if img1.shape != img2_input.shape:
+    if img1_input.shape != img2_input.shape:
         # img2=img2_input.repeat(3, 1, 1)
         img1=calculate_loss_approach_1(img1_input)
         img2=img2_input
