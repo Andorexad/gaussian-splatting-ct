@@ -480,7 +480,7 @@ def readDrrSceneInfo(path, eval, num_pts=1024, train_num=-1):
         print(f"Generating random point cloud ({num_pts})...")
 
         # We create random points inside the bounds of the synthetic Blender scenes
-        xyz = np.random.random((num_pts, 3)) * 1 - 0.5  # 2.6 1.3
+        xyz = np.random.random((num_pts, 3)) 
         shs = np.random.random((num_pts, 3)) / 255.0
         pcd = BasicPointCloud(points=xyz, colors=SH2RGB(
             shs), normals=np.zeros((num_pts, 3)))

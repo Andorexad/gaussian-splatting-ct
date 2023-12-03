@@ -40,12 +40,16 @@ def ssim(img1, img2, window_size=11, size_average=True):
 
     return _ssim(img1, img2, window, window_size, channel, size_average)
 
-def _ssim(img1, img2_input, window, window_size, channel, size_average=True):
+def _ssim(img1_input, img2_input, window, window_size, channel, size_average=True):
     img2=None
+    img1=None
     if img1.shape != img2_input.shape:
-        img2=img2_input.repeat(3, 1, 1)
+        # img2=img2_input.repeat(3, 1, 1)
+        img1=calculate_loss_approach_1(img1_input)
+        img2=img2_input
     else:
         img2=img2_input
+        img1=img1_input
     # .repeat(3, 1, 1)
     mu1 = F.conv2d(img1, window, padding=window_size // 2, groups=channel)
     mu2 = F.conv2d(img2, window, padding=window_size // 2, groups=channel)
@@ -67,4 +71,19 @@ def _ssim(img1, img2_input, window, window_size, channel, size_average=True):
         return ssim_map.mean()
     else:
         return ssim_map.mean(1).mean(1).mean(1)
+
+
+
+def calculate_loss(grayscale_img):
+    # Ensure the grayscale image has three channels
+    return grayscale_img.repeat(1, 3, 1, 1)
+
+
+def calculate_loss_approach_1(rgb_img):
+    # Convert the RGB image to grayscale
+    r, g, b = rgb_img[:, 0, :, :], rgb_img[:, 1, :, :], rgb_img[:, 2, :, :]
+    rgb_to_gray = 0.3 * r + 0.59 * g + 0.11 * b
+    rgb_to_gray = rgb_to_gray.unsqueeze(1)  # Add channel dimension
+
+    return rgb_to_gray
 
