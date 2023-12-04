@@ -59,7 +59,7 @@ class GaussianModel:
         self.setup_functions()
     
     def get_size(self):
-        return self.get_xyz.shape
+        print(self.get_xyz.shape)
 
     def capture(self):
         return (
