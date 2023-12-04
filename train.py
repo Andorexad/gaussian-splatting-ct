@@ -137,6 +137,8 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoi
             if (iteration in checkpoint_iterations):
                 print("\n[ITER {}] Saving Checkpoint".format(iteration))
                 torch.save((gaussians.capture(), iteration), scene.model_path + "/chkpnt" + str(iteration) + ".pth")
+    print('training complete.')
+    gaussians.get_size()
     plt.figure(figsize=(12, 6))
 
     # First subplot for raw training loss
