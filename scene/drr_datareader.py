@@ -407,7 +407,7 @@ def extract_pose_and_intrinsic_from_drr_cam(path):
         pose = np.array([list(map(float, line.split())) for line in extrinsic_lines], dtype=np.float32)
     return (fx, fy, cx, cy, int(height), int(width)), pose
 
-def readDrrSceneInfo(path, eval, num_pts=102400, train_num=-1):
+def readDrrSceneInfo(path, eval, num_pts=3, train_num=-1):
     print("start drr scene info")
     if os.path.isdir(path):
         sample_dir = path

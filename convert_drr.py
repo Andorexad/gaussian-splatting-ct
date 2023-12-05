@@ -2,7 +2,7 @@ import os
 import cv2
 
 # Specify the folder containing the images
-folder_path = r'C:\Users\Andi\Research\3d-gaussian-splatting\drr\test-2\input'
+folder_path = r'C:\Users\Andi\Research\3d-gaussian-splatting\drr\test-12-4\360-002-chest\input'
 
 # List all files in the folder
 for filename in os.listdir(folder_path):
